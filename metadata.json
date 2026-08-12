@@ -1,0 +1,6 @@
+{
+  "name": "Unlock player",
+  "description": "Unlock Player is a premium, high-performance IPTV player featuring an immersive dark Neon Green interface, Room database caching, and robust live, movie, and series playback using Media3/ExoPlayer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

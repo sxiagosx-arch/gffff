@@ -1,0 +1,151 @@
+                                    text = ch.name,
+                                    color = if (isSelected) Color.Black else NeonGreen,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Episodes List Panel on the Bottom (SERIES)
+        AnimatedVisibility(
+            visible = !isLocked && !inlineMode && showChannelsList && (adjacentChannels.isNotEmpty() || seriesSeasons.isNotEmpty()) && channel.type == "SERIES",
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Transparent)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {}
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.lazy.LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (seriesSeasons.isNotEmpty()) {
+                            seriesSeasons.forEach { season ->
+                                item {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(end = 4.dp).height(48.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.ViewList,
+                                            contentDescription = "Temporada",
+                                            tint = NeonGreen,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "T${season.number}",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                                items(season.episodes) { ch ->
+                                    val isSelected = ch.id == channel.id
+                                    val epNumMatch = Regex("(?i)(?:E|EP|Episódio|Episode)\\s*(\\d+)").find(ch.name)
+                                    val displayNum = epNumMatch?.groupValues?.get(1) ?: ch.name.take(10)
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .width(64.dp)
+                                            .height(48.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isSelected) NeonGreen else Color.Black.copy(alpha = 0.65f))
+                                            .border(1.dp, NeonGreen, RoundedCornerShape(8.dp))
+                                            .clickable { onChannelChange(ch) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = displayNum,
+                                            color = if (isSelected) Color.Black else NeonGreen,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                }
+                            }
+                        } else {
+                            items(adjacentChannels) { ch ->
+                                val isSelected = ch.id == channel.id
+                                val epNumMatch = Regex("(?i)(?:E|EP|Episódio|Episode)\\s*(\\d+)").find(ch.name)
+                                val displayNum = epNumMatch?.groupValues?.get(1) ?: ch.name.take(10)
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .width(64.dp)
+                                        .height(48.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) NeonGreen else Color.Black.copy(alpha = 0.65f))
+                                        .border(1.dp, NeonGreen, RoundedCornerShape(8.dp))
+                                        .clickable { onChannelChange(ch) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = displayNum,
+                                        color = if (isSelected) Color.Black else NeonGreen,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+            }
+        }
+
+            }
+        // Next Episode Popup
+        val timeLeftMs = totalDuration - currentPosition
+        if (!dismissNextPopup && channel.type != "LIVE" && totalDuration > 0 && timeLeftMs in 1L..240000L) {
+            val currIndex = adjacentChannels.indexOfFirst { it.id == channel.id }
+            val nextChannel = if (currIndex != -1 && currIndex < adjacentChannels.size - 1) adjacentChannels[currIndex + 1] else null
+            if (nextChannel != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = if (showControls) 120.dp else 32.dp, end = 32.dp),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.Black.copy(alpha = 0.85f))
+                            .border(1.dp, NeonGreen, RoundedCornerShape(6.dp))
+                            .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.clickable { onChannelChange(nextChannel) }) {
+                            Text(if (channel.type == "SERIES") "Próximo Episódio" else "Próximo Filme", color = Color.Gray, fontSize = 9.sp)
+                            Text(nextChannel.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1, modifier = Modifier.widthIn(max = 140.dp))
+                            Text("Pular (${(timeLeftMs / 1000).toInt()}s)", color = NeonGreen, fontSize = 9.sp)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(imageVector = Icons.Rounded.SkipNext, contentDescription = "Próximo", tint = NeonGreen, modifier = Modifier.size(20.dp).clickable { onChannelChange(nextChannel) })

@@ -1,0 +1,159 @@
+<html>
+<head>
+<title>build.gradle.kts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #bcbec4;}
+.s1 { color: #bcbec4;}
+.s2 { color: #6aab73;}
+.s3 { color: #2aacb8;}
+.s4 { color: #cf8e6d;}
+.s5 { color: #7a7e85;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+build.gradle.kts</font>
+</center></td></tr></table>
+<pre><span class="s0">import com</span><span class="s1">.</span><span class="s0">google</span><span class="s1">.</span><span class="s0">gms</span><span class="s1">.</span><span class="s0">googleservices</span><span class="s1">.</span><span class="s0">GoogleServicesPlugin</span><span class="s1">.</span><span class="s0">MissingGoogleServicesStrategy</span>
+
+<span class="s0">plugins </span><span class="s1">{</span>
+  <span class="s0">alias</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">plugins</span><span class="s1">.</span><span class="s0">android</span><span class="s1">.</span><span class="s0">application</span><span class="s1">)</span>
+  <span class="s0">alias</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">plugins</span><span class="s1">.</span><span class="s0">kotlin</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s0">alias</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">plugins</span><span class="s1">.</span><span class="s0">google</span><span class="s1">.</span><span class="s0">devtools</span><span class="s1">.</span><span class="s0">ksp</span><span class="s1">)</span>
+  <span class="s0">alias</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">plugins</span><span class="s1">.</span><span class="s0">roborazzi</span><span class="s1">)</span>
+  <span class="s0">alias</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">plugins</span><span class="s1">.</span><span class="s0">secrets</span><span class="s1">)</span>
+  <span class="s0">alias</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">plugins</span><span class="s1">.</span><span class="s0">google</span><span class="s1">.</span><span class="s0">services</span><span class="s1">)</span>
+<span class="s1">}</span>
+
+<span class="s0">android </span><span class="s1">{</span>
+  <span class="s0">namespace </span><span class="s1">= </span><span class="s2">&quot;com.example&quot;</span>
+  <span class="s0">compileSdk </span><span class="s1">{ </span><span class="s0">version </span><span class="s1">= </span><span class="s0">release</span><span class="s1">(</span><span class="s3">36</span><span class="s1">) { </span><span class="s0">minorApiLevel </span><span class="s1">= </span><span class="s3">1 </span><span class="s1">} }</span>
+
+  <span class="s0">defaultConfig </span><span class="s1">{</span>
+    <span class="s0">applicationId </span><span class="s1">= </span><span class="s2">&quot;com.aistudio.unlockplayer.kuyzba&quot;</span>
+    <span class="s0">minSdk </span><span class="s1">= </span><span class="s3">24</span>
+    <span class="s0">targetSdk </span><span class="s1">= </span><span class="s3">36</span>
+    <span class="s0">versionCode </span><span class="s1">= </span><span class="s3">1</span>
+    <span class="s0">versionName </span><span class="s1">= </span><span class="s2">&quot;1.0&quot;</span>
+
+    <span class="s0">testInstrumentationRunner </span><span class="s1">= </span><span class="s2">&quot;androidx.test.runner.AndroidJUnitRunner&quot;</span>
+  <span class="s1">}</span>
+
+  <span class="s0">signingConfigs </span><span class="s1">{</span>
+    <span class="s0">create</span><span class="s1">(</span><span class="s2">&quot;release&quot;</span><span class="s1">) {</span>
+      <span class="s4">val </span><span class="s0">keystorePath </span><span class="s1">= </span><span class="s0">System</span><span class="s1">.</span><span class="s0">getenv</span><span class="s1">(</span><span class="s2">&quot;KEYSTORE_PATH&quot;</span><span class="s1">) </span><span class="s0">?: </span><span class="s2">&quot;</span><span class="s4">${</span><span class="s0">rootDir</span><span class="s4">}</span><span class="s2">/my-upload-key.jks&quot;</span>
+      <span class="s0">storeFile </span><span class="s1">= </span><span class="s0">file</span><span class="s1">(</span><span class="s0">keystorePath</span><span class="s1">)</span>
+      <span class="s0">storePassword </span><span class="s1">= </span><span class="s0">System</span><span class="s1">.</span><span class="s0">getenv</span><span class="s1">(</span><span class="s2">&quot;STORE_PASSWORD&quot;</span><span class="s1">)</span>
+      <span class="s0">keyAlias </span><span class="s1">= </span><span class="s2">&quot;upload&quot;</span>
+      <span class="s0">keyPassword </span><span class="s1">= </span><span class="s0">System</span><span class="s1">.</span><span class="s0">getenv</span><span class="s1">(</span><span class="s2">&quot;KEY_PASSWORD&quot;</span><span class="s1">)</span>
+    <span class="s1">}</span>
+  <span class="s1">}</span>
+
+  <span class="s0">buildTypes </span><span class="s1">{</span>
+    <span class="s0">release </span><span class="s1">{</span>
+      <span class="s0">isCrunchPngs </span><span class="s1">= </span><span class="s4">false</span>
+      <span class="s0">isMinifyEnabled </span><span class="s1">= </span><span class="s4">false</span>
+      <span class="s0">proguardFiles</span><span class="s1">(</span><span class="s0">getDefaultProguardFile</span><span class="s1">(</span><span class="s2">&quot;proguard-android-optimize.txt&quot;</span><span class="s1">), </span><span class="s2">&quot;proguard-rules.pro&quot;</span><span class="s1">)</span>
+      <span class="s0">signingConfig </span><span class="s1">= </span><span class="s0">signingConfigs</span><span class="s1">.</span><span class="s0">getByName</span><span class="s1">(</span><span class="s2">&quot;release&quot;</span><span class="s1">)</span>
+    <span class="s1">}</span>
+    <span class="s0">debug </span><span class="s1">{ }</span>
+  <span class="s1">}</span>
+  <span class="s0">compileOptions </span><span class="s1">{</span>
+    <span class="s0">sourceCompatibility </span><span class="s1">= </span><span class="s0">JavaVersion</span><span class="s1">.</span><span class="s0">VERSION_11</span>
+    <span class="s0">targetCompatibility </span><span class="s1">= </span><span class="s0">JavaVersion</span><span class="s1">.</span><span class="s0">VERSION_11</span>
+  <span class="s1">}</span>
+  <span class="s0">buildFeatures </span><span class="s1">{</span>
+    <span class="s0">compose </span><span class="s1">= </span><span class="s4">true</span>
+    <span class="s0">buildConfig </span><span class="s1">= </span><span class="s4">true</span>
+  <span class="s1">}</span>
+  <span class="s0">testOptions </span><span class="s1">{ </span><span class="s0">unitTests </span><span class="s1">{ </span><span class="s0">isIncludeAndroidResources </span><span class="s1">= </span><span class="s4">true </span><span class="s1">} }</span>
+<span class="s1">}</span>
+
+<span class="s5">// Configure the Secrets Gradle Plugin to use .env and .env.example files</span>
+<span class="s5">// to match the convention used in Web projects.</span>
+<span class="s0">secrets </span><span class="s1">{</span>
+  <span class="s0">propertiesFileName </span><span class="s1">= </span><span class="s2">&quot;.env&quot;</span>
+  <span class="s0">defaultPropertiesFileName </span><span class="s1">= </span><span class="s2">&quot;.env.example&quot;</span>
+<span class="s1">}</span>
+
+<span class="s0">googleServices </span><span class="s1">{ </span><span class="s0">missingGoogleServicesStrategy </span><span class="s1">= </span><span class="s0">MissingGoogleServicesStrategy</span><span class="s1">.</span><span class="s0">WARN </span><span class="s1">}</span>
+
+<span class="s5">// Some unused dependencies are commented out below instead of being removed.</span>
+<span class="s5">// This makes it easy to add them back in the future if needed.</span>
+<span class="s0">dependencies </span><span class="s1">{</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">work</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">ktx</span><span class="s1">)</span>
+
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">platform</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">bom</span><span class="s1">))</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">platform</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">firebase</span><span class="s1">.</span><span class="s0">bom</span><span class="s1">))</span>
+  <span class="s5">// implementation(libs.accompanist.permissions)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">activity</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s5">// implementation(libs.androidx.camera.camera2)</span>
+  <span class="s5">// implementation(libs.androidx.camera.core)</span>
+  <span class="s5">// implementation(libs.androidx.camera.lifecycle)</span>
+  <span class="s5">// implementation(libs.androidx.camera.view)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">core</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">extended</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">graphics</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">tooling</span><span class="s1">.</span><span class="s0">preview</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">core</span><span class="s1">.</span><span class="s0">ktx</span><span class="s1">)</span>
+  <span class="s5">// implementation(libs.androidx.datastore.preferences)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">lifecycle</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">lifecycle</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">ktx</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">lifecycle</span><span class="s1">.</span><span class="s0">viewmodel</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">navigation</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">room</span><span class="s1">.</span><span class="s0">ktx</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">room</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">coil</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">media3</span><span class="s1">.</span><span class="s0">exoplayer</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">media3</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">media3</span><span class="s1">.</span><span class="s0">common</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">media3</span><span class="s1">.</span><span class="s0">exoplayer</span><span class="s1">.</span><span class="s0">hls</span><span class="s1">)</span>
+    <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">media3</span><span class="s1">.</span><span class="s0">datasource</span><span class="s1">.</span><span class="s0">cronet</span><span class="s1">)</span>
+    <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">play</span><span class="s1">.</span><span class="s0">services</span><span class="s1">.</span><span class="s0">cronet</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">converter</span><span class="s1">.</span><span class="s0">moshi</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">firebase</span><span class="s1">.</span><span class="s0">ai</span><span class="s1">)</span>
+  <span class="s5">// Uncomment to use Firestore:</span>
+  <span class="s5">// implementation(libs.firebase.firestore)</span>
+
+  <span class="s5">// Firebase Auth with Google Sign-In requires all of the following to be uncommented together.</span>
+  <span class="s5">// If you are using Firebase Auth with other providers (e.g. Email/Password), you may only need</span>
+  <span class="s5">// firebase-auth.</span>
+  <span class="s5">// implementation(libs.firebase.auth)</span>
+  <span class="s5">// implementation(libs.androidx.credentials)</span>
+  <span class="s5">// implementation(libs.androidx.credentials.play.services)</span>
+  <span class="s5">// implementation(libs.googleid)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">firebase</span><span class="s1">.</span><span class="s0">appcheck</span><span class="s1">.</span><span class="s0">recaptcha</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">kotlinx</span><span class="s1">.</span><span class="s0">coroutines</span><span class="s1">.</span><span class="s0">android</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">kotlinx</span><span class="s1">.</span><span class="s0">coroutines</span><span class="s1">.</span><span class="s0">core</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">logging</span><span class="s1">.</span><span class="s0">interceptor</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">moshi</span><span class="s1">.</span><span class="s0">kotlin</span><span class="s1">)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">okhttp</span><span class="s1">)</span>
+  <span class="s5">// implementation(libs.play.services.location)</span>
+  <span class="s0">implementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">retrofit</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">test</span><span class="s1">.</span><span class="s0">junit4</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">core</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">junit</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">junit</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">kotlinx</span><span class="s1">.</span><span class="s0">coroutines</span><span class="s1">.</span><span class="s0">test</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">robolectric</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">roborazzi</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">roborazzi</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">)</span>
+  <span class="s0">testImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">roborazzi</span><span class="s1">.</span><span class="s0">junit</span><span class="s1">.</span><span class="s0">rule</span><span class="s1">)</span>
+  <span class="s0">androidTestImplementation</span><span class="s1">(</span><span class="s0">platform</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">bom</span><span class="s1">))</span>
+  <span class="s0">androidTestImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">test</span><span class="s1">.</span><span class="s0">junit4</span><span class="s1">)</span>
+  <span class="s0">androidTestImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">espresso</span><span class="s1">.</span><span class="s0">core</span><span class="s1">)</span>
+  <span class="s0">androidTestImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">junit</span><span class="s1">)</span>
+  <span class="s0">androidTestImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">runner</span><span class="s1">)</span>
+  <span class="s0">debugImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">test</span><span class="s1">.</span><span class="s0">manifest</span><span class="s1">)</span>
+  <span class="s0">debugImplementation</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">tooling</span><span class="s1">)</span>
+  <span class="s2">&quot;ksp&quot;</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">room</span><span class="s1">.</span><span class="s0">compiler</span><span class="s1">)</span>
+  <span class="s2">&quot;ksp&quot;</span><span class="s1">(</span><span class="s0">libs</span><span class="s1">.</span><span class="s0">moshi</span><span class="s1">.</span><span class="s0">kotlin</span><span class="s1">.</span><span class="s0">codegen</span><span class="s1">)</span>
+<span class="s1">}</span>
+</pre>
+</body>
+</html>
