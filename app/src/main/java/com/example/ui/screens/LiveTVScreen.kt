@@ -62,12 +62,12 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
     var isSortAZ by remember { mutableStateOf(true) }
     var showPinDialogForCat by remember { mutableStateOf<String?>(null) }
     var pinInput by remember { mutableStateOf("") }
-
+    
     if (showPinDialogForCat != null) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showPinDialogForCat = null; pinInput = "" },
             title = { androidx.compose.material3.Text("Conteúdo Bloqueado", color = Color.White) },
-            text = {
+            text = { 
                 Column {
                     androidx.compose.material3.Text("Digite o PIN para acessar esta categoria:", color = Color.Gray)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -103,8 +103,10 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
         )
     }
 
+    // Filter categories to only LIVE ones
     val liveCategories = categories.filter { it.type == "LIVE" }
-
+    
+    // Set initial active category if empty
     LaunchedEffect(liveCategories) {
         if (selectedCategoryId.isEmpty()) {
             selectedCategoryId = "all_channels"
@@ -112,12 +114,12 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
     }
 
     var filteredChannels by remember { mutableStateOf<List<IPTVChannel>>(emptyList()) }
-
+    
     LaunchedEffect(channels, categories, searchQuery, selectedCategoryId, isSortAZ, favorites) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
             val liveCategoryIds = categories.filter { it.type == "LIVE" }.map { it.id }.toSet()
             var list = channels.filter { it.type == "LIVE" && liveCategoryIds.contains(it.categoryId) }
-
+            
             if (selectedCategoryId.isNotEmpty() && selectedCategoryId != "all_favs" && selectedCategoryId != "all_channels") {
                 list = list.filter { it.categoryId == selectedCategoryId }
             } else if (selectedCategoryId == "all_favs") {
@@ -146,14 +148,16 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
     ) {
         Column(modifier = Modifier.fillMaxSize().then(if (uiState is IPTVUiState.Loading) Modifier.blur(16.dp) else Modifier)) {
 
+
+            // BOTTOM CONTENT
             Row(modifier = Modifier.fillMaxSize()) {
-                // Barra Lateral MENOR (130.dp)
+                // Left Sidebar for Categories
                 LazyColumn(
                     modifier = Modifier
-                        .width(130.dp)
+                        .width(200.dp)
                         .fillMaxHeight()
                         .background(Color(0xFF050505)),
-                    contentPadding = PaddingValues(vertical = 16.dp, horizontal = 4.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp, horizontal = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
@@ -161,8 +165,8 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
                             text = "Categorias",
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 15.sp,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                         )
                     }
                     item {
@@ -181,17 +185,19 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
                         CategoryBadge(
                             title = cat.name,
                             selected = selectedCategoryId == cat.id
-                        ) {
-                            if (viewModel.isCategoryBlocked(cat.id, cat.name)) {
-                                showPinDialogForCat = cat.id
-                            } else {
-                                selectedCategoryId = cat.id
+                        ) { 
+                                if (viewModel.isCategoryBlocked(cat.id, cat.name)) {
+                                    showPinDialogForCat = cat.id
+                                } else {
+                                    selectedCategoryId = cat.id 
+                                }
                             }
-                        }
                     }
                 }
-
+                
+                // Middle Content Area: Channels List
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    // Header Sort
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -213,9 +219,12 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
                         }
                     }
 
+                    // Channels List
                     if (filteredChannels.isEmpty() && uiState !is IPTVUiState.Loading) {
                         Box(
-                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .width(300.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -234,18 +243,135 @@ fun LiveTVScreen(viewModel: IPTVViewModel) {
                         ) {
                             items(filteredChannels, key = { it.id }) { ch ->
                                 val isFav = favorites.any { it.streamId == ch.id && it.type == "LIVE" }
+                                val isSelected = false
                                 LiveChannelListItem(
                                     channel = ch,
                                     isFav = isFav,
-                                    isSelected = false,
+                                    isSelected = isSelected,
                                     onToggleFav = { viewModel.toggleFavorite(ch) },
-                                    onClick = {
+                                    onClick = { 
                                         viewModel.selectChannel(ch)
-                                        focusManager.clearFocus()
+                                focusManager.clearFocus() 
                                     }
                                 )
                             }
                         }
+                    }
+                }
+
+
+            }
+        }
+    }
+}
+@Composable
+fun LiveChannelCard(channel: IPTVChannel, isFav: Boolean, onToggleFav: () -> Unit, onClick: () -> Unit) {
+    var isFocused by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .border(if (isFocused) 2.dp else 0.dp, if (isFocused) NeonGreen else Color.Transparent, RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .testTag("live_channel_card"),
+        colors = CardDefaults.cardColors(containerColor = Charcoal)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+                    .background(Color.Black)
+            ) {
+                SubcomposeAsyncImage(
+                    model = channel.logo,
+                    contentDescription = channel.name,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    error = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = channel.name.take(2).uppercase(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                )
+                // Favorite Button Overlay
+                IconButton(
+                    onClick = onToggleFav,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(28.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                ) {
+                    Icon(
+                        imageVector = if (isFav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Favorito",
+                        tint = if (isFav) Color.Red else Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                
+                // Resolution indicator
+                if (channel.resolution.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(NeonGreenDim)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(channel.resolution, color = NeonGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = channel.name,
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                // EPG Details
+                if (channel.epgTitle.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Rounded.PlayCircle, contentDescription = "EPG", tint = NeonGreen, modifier = Modifier.size(10.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = channel.epgTitle,
+                            color = NeonGreen,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (channel.epgNextTitle.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Rounded.Update, contentDescription = "EPG Next", tint = Color.Gray, modifier = Modifier.size(10.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = channel.epgNextTitle,
+                            color = Color.Gray,
+                            fontSize = 9.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -298,14 +424,12 @@ fun LiveChannelListItem(
             }
         }
         Spacer(modifier = Modifier.width(16.dp))
-
-        // CORREÇÃO AQUI: weight(1f) em vez de width(300.dp) para não quebrar a tela
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.width(300.dp)) {
             Text(
                 text = channel.name,
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -313,7 +437,7 @@ fun LiveChannelListItem(
             Text(
                 text = channel.categoryName,
                 color = Color.Gray,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -327,7 +451,6 @@ fun LiveChannelListItem(
         }
     }
 }
-
 @Composable
 fun CategoryBadge(
     title: String,
@@ -345,17 +468,19 @@ fun CategoryBadge(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable { onClick() }
-            .padding(vertical = 10.dp, horizontal = 8.dp),
+            .padding(vertical = 12.dp, horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
             text = title,
             color = if (selected) NeonGreen else Color.LightGray,
             fontWeight = FontWeight.ExtraBold,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }
 }
+
+
         

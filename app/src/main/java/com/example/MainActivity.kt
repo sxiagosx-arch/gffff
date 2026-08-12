@@ -1,43 +1,48 @@
 package com.example
+import androidx.compose.ui.draw.blur
 
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
+import com.example.worker.SyncWorker
+
+import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.IPTVViewModel
 import com.example.ui.Screen
 import com.example.ui.player.CustomIPTVPlayer
@@ -47,29 +52,14 @@ import com.example.ui.theme.MatteBlack
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.NeonGreen
 import com.example.ui.theme.NeonGreenDim
-import com.example.worker.SyncWorker
-import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
-    // 1. FORÇAR MODO IMERSIVO (FULLSCREEN ABSOLUTO) SEMPRE QUE O APP TIVER FOCO
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            hideSystemUI()
-        }
-    }
-
-    private fun hideSystemUI() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, window.decorView).let { controller ->
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
-    }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        // Determine if we should enter PiP mode
+        // Only if a video is currently playing
         val viewModel: com.example.ui.IPTVViewModel by viewModels()
         if (viewModel.selectedChannel.value != null) {
             val params = android.app.PictureInPictureParams.Builder()
@@ -81,25 +71,26 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        hideSystemUI() // Oculta as barras assim que cria a tela
-
         com.example.ui.player.CronetUtil.init(this)
 
+        // Configurar Atualização em Segundo Plano (WorkManager)
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-
+            
         val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(12, TimeUnit.HOURS)
             .setConstraints(constraints)
             .build()
-
+            
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "IPTV_SYNC_WORK",
             ExistingPeriodicWorkPolicy.KEEP,
             syncRequest
         )
 
+        enableEdgeToEdge()
+
+        // Request post notification permission for Android 13+ if needed
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(
                 Manifest.permission.POST_NOTIFICATIONS
@@ -121,29 +112,46 @@ class MainActivity : ComponentActivity() {
                 val isTvLandscape = if (deviceLayoutMode == "TV") true else if (deviceLayoutMode == "MOBILE") false else configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 val showNavigation = currentScreen != Screen.SPLASH && currentScreen != Screen.LOGIN && currentScreen != Screen.DEVICE_SELECTION
 
+                // Custom Back navigation handling
                 if (showNavigation) {
                     BackHandler(enabled = currentScreen != Screen.HOME) {
-                        viewModel.navigateBack()
+                        viewModel.navigateTo(Screen.HOME)
                     }
                 }
+
 
                 com.example.ui.components.PremiumBackground(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     if (!showNavigation) {
+                        // Fullscreen splash / login screens without menus
                         MainContentRouting(currentScreen = currentScreen, viewModel = viewModel)
                     } else {
-                        // 2. RETIRADA DE TODOS OS INSETS PARA SUMIR A BARRA PRETA
                         Scaffold(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black),
-                            containerColor = MatteBlack,
-                            contentWindowInsets = WindowInsets(0, 0, 0, 0) // <--- FORÇA O FIM DA BARRA PRETA AQUI
+                                .padding(6.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+                                .border(
+                                    width = 1.dp,
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(
+                                            com.example.ui.theme.NeonGreen.copy(alpha = 0.8f), 
+                                            com.example.ui.theme.NeonGreen.copy(alpha = 0.1f), 
+                                            androidx.compose.ui.graphics.Color.Transparent
+                                        )
+                                    ),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                                ),
+                            containerColor = MatteBlack
                         ) { innerPadding ->
-                            // Sem o modifier de innerPadding, ele ignora as margens virtuais do sistema
-                            Box(modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(innerPadding)
+                            ) {
                                 if (isTvLandscape) {
+                                    // LANDSCAPE / TV LAYOUT: Permanent Side Navigation Bar
                                     Row(modifier = Modifier.fillMaxSize()) {
                                         TvSidebarPanel(
                                             currentScreen = currentScreen,
@@ -159,6 +167,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 } else {
+                                    // PORTRAIT / MOBILE LAYOUT: Screen Content on top, Bottom Navigation Bar at the bottom
                                     Column(modifier = Modifier.fillMaxSize()) {
                                         Box(
                                             modifier = Modifier
@@ -177,9 +186,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // FULL SCREEN PLAYER OVERLAY
                     val watchHistory by viewModel.watchHistory.collectAsState(initial = emptyList())
                     val favorites by viewModel.favorites.collectAsState(initial = emptyList())
-
                     AnimatedVisibility(
                         visible = selectedChannel != null,
                         enter = fadeIn() + expandIn(),
@@ -188,17 +197,19 @@ class MainActivity : ComponentActivity() {
                     ) {
                         selectedChannel?.let { channel ->
                             val hist = watchHistory.find { it.streamId == channel.id }
+                            // Calculate proper offset for series and movies
                             var initialPos = hist?.positionMs ?: 0L
                             val duration = hist?.durationMs ?: 0L
                             if (duration > 0 && initialPos >= duration * 0.95) {
                                 initialPos = 0L
                             }
+                            // Series might need to start slightly earlier to recall context
                             if (initialPos > 10000L && channel.type == "SERIES") {
-                                initialPos -= 5000L
+                                initialPos -= 5000L // 5 seconds offset
                             } else if (initialPos > 15000L && channel.type == "MOVIE") {
-                                initialPos -= 10000L
+                                initialPos -= 10000L // 10 seconds offset
                             }
-
+                            
                             val isFav = if (channel.type == "SERIES" && channel.seriesId.isNotEmpty()) {
                                 favorites.any { it.streamId == channel.seriesId && it.type == "SERIES" }
                             } else {
@@ -212,7 +223,7 @@ class MainActivity : ComponentActivity() {
                                 initialPositionMs = initialPos,
                                 bufferSize = viewModel.bufferSize.value,
                                 isFav = isFav,
-                                onToggleFav = {
+                                onToggleFav = { 
                                     if (channel.type == "SERIES" && channel.seriesId.isNotEmpty()) {
                                         val series = viewModel.seriesList.value.find { it.id == channel.seriesId }
                                         if (series != null) viewModel.toggleFavoriteSeries(series)
@@ -227,7 +238,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
+                
+                // SPLASH SCREEN OVERLAY
                 androidx.compose.animation.AnimatedVisibility(
                     visible = isLoadingApp,
                     enter = androidx.compose.animation.EnterTransition.None,
@@ -247,9 +259,9 @@ fun MainContentRouting(currentScreen: Screen, viewModel: IPTVViewModel) {
     androidx.compose.animation.AnimatedContent(
         targetState = currentScreen,
         transitionSpec = {
-            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
-                    androidx.compose.animation.slideInVertically(animationSpec = androidx.compose.animation.core.tween(300)) { height -> height / 20 } togetherWith
-                    androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
+            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) + 
+            androidx.compose.animation.slideInVertically(animationSpec = androidx.compose.animation.core.tween(300)) { height -> height / 20 } togetherWith
+            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
         },
         label = "screen_transition"
     ) { screen ->
@@ -265,6 +277,7 @@ fun MainContentRouting(currentScreen: Screen, viewModel: IPTVViewModel) {
             Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
             Screen.FAVORITES -> FavoritesScreen(viewModel = viewModel)
             Screen.HISTORY -> HistoryScreen(viewModel = viewModel)
+            Screen.ABOUT -> PlaceholderScreen("Sobre", "Neon IPTV Pro - Versão 1.0.0\nCriado para a melhor experiência de IPTV.")
             else -> MainDashboard(viewModel = viewModel)
         }
     }
@@ -297,6 +310,7 @@ fun TvSidebarPanel(
         horizontalAlignment = Alignment.Start
     ) {
         Column {
+            // Header: Stylized Brand Icon & Name
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(vertical = 12.dp)
@@ -322,6 +336,7 @@ fun TvSidebarPanel(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // User Profile Row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -350,20 +365,57 @@ fun TvSidebarPanel(
                 }
             }
 
-            HorizontalDivider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 16.dp))
+            Divider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 16.dp))
 
-            TvSidebarItem(icon = Icons.Rounded.Home, label = "Início", selected = currentScreen == Screen.HOME) { onNavigate(Screen.HOME) }
-            TvSidebarItem(icon = Icons.Rounded.LiveTv, label = "TV Ao Vivo", selected = currentScreen == Screen.LIVE_TV) { onNavigate(Screen.LIVE_TV) }
-            TvSidebarItem(icon = Icons.Rounded.Movie, label = "Filmes", selected = currentScreen == Screen.MOVIES) { onNavigate(Screen.MOVIES) }
-            TvSidebarItem(icon = Icons.Rounded.Tv, label = "Séries", selected = currentScreen == Screen.SERIES) { onNavigate(Screen.SERIES) }
-            TvSidebarItem(icon = Icons.Rounded.Settings, label = "Configurações", selected = currentScreen == Screen.SETTINGS) { onNavigate(Screen.SETTINGS) }
-            TvSidebarItem(icon = Icons.Rounded.Favorite, label = "Favoritos", selected = currentScreen == Screen.FAVORITES) { onNavigate(Screen.FAVORITES) }
+            // Navigation Items
+            TvSidebarItem(
+                icon = Icons.Rounded.Home,
+                label = "Início",
+                selected = currentScreen == Screen.HOME
+            ) { onNavigate(Screen.HOME) }
+
+            TvSidebarItem(
+                icon = Icons.Rounded.LiveTv,
+                label = "TV Ao Vivo",
+                selected = currentScreen == Screen.LIVE_TV
+            ) { onNavigate(Screen.LIVE_TV) }
+
+            TvSidebarItem(
+                icon = Icons.Rounded.Movie,
+                label = "Filmes",
+                selected = currentScreen == Screen.MOVIES
+            ) { onNavigate(Screen.MOVIES) }
+
+            TvSidebarItem(
+                icon = Icons.Rounded.Tv,
+                label = "Séries",
+                selected = currentScreen == Screen.SERIES
+            ) { onNavigate(Screen.SERIES) }
+
+            
+
+            TvSidebarItem(
+                icon = Icons.Rounded.Settings,
+                label = "Configurações",
+                selected = currentScreen == Screen.SETTINGS
+            ) { onNavigate(Screen.SETTINGS) }
+
+            TvSidebarItem(
+                icon = Icons.Rounded.Favorite,
+                label = "Favoritos",
+                selected = currentScreen == Screen.FAVORITES
+            ) { onNavigate(Screen.FAVORITES) }
         }
     }
 }
 
 @Composable
-fun TvSidebarItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
+fun TvSidebarItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     var isFocused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
@@ -378,20 +430,32 @@ fun TvSidebarItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: 
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = label, tint = if (isFocused || selected) NeonGreen else Color.LightGray, modifier = Modifier.size(20.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isFocused || selected) NeonGreen else Color.LightGray,
+            modifier = Modifier.size(20.dp)
+        )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = label, color = if (isFocused || selected) NeonGreen else Color.White, fontWeight = if (isFocused || selected) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
+        Text(
+            text = label,
+            color = if (isFocused || selected) NeonGreen else Color.White,
+            fontWeight = if (isFocused || selected) FontWeight.Bold else FontWeight.Medium,
+            fontSize = 13.sp
+        )
     }
 }
 
 @Composable
-fun PhoneBottomNavigationBar(currentScreen: Screen, onNavigate: (Screen) -> Unit) {
-    // 3. RETIRADA DA BARRA DO MENU INFERIOR
+fun PhoneBottomNavigationBar(
+    currentScreen: Screen,
+    onNavigate: (Screen) -> Unit
+) {
     NavigationBar(
         containerColor = NeonGreen.copy(alpha = 0.15f),
         tonalElevation = 0.dp,
-        windowInsets = WindowInsets(0, 0, 0, 0), // <--- FORÇA O FIM DA BARRA PRETA AQUI TBM
         modifier = Modifier
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .background(com.example.ui.theme.MatteBlack.copy(alpha = 0.6f))
     ) {
         val items = listOf(
@@ -408,9 +472,25 @@ fun PhoneBottomNavigationBar(currentScreen: Screen, onNavigate: (Screen) -> Unit
             NavigationBarItem(
                 selected = selected,
                 onClick = { onNavigate(screen) },
-                icon = { Icon(imageVector = icon, contentDescription = label, tint = if (selected) Color.Black else Color.LightGray) },
-                label = { Text(text = label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp) },
-                colors = NavigationBarItemDefaults.colors(indicatorColor = NeonGreen, selectedTextColor = NeonGreen, unselectedTextColor = Color.LightGray)
+                icon = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = if (selected) Color.Black else Color.LightGray
+                    )
+                },
+                label = {
+                    Text(
+                        text = label,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 11.sp
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = NeonGreen,
+                    selectedTextColor = NeonGreen,
+                    unselectedTextColor = Color.LightGray
+                )
             )
         }
     }
